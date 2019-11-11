@@ -1,0 +1,375 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title></title>
+  <style>
+    html, body { height: 100%; margin: 0; }
+    body { background: black; align-items: center; justify-content: center; }
+    canvas { border: 1px solid white; }
+	#highScore { color:white;align-items: top;font-size:30px; float:right ;}
+	#score { color:white;align-items: top;font-size:30px;display:inline-block;}
+	Button {align-items: bottom;}
+  </style>
+</head>
+<body>
+<div id="score">Score</div>
+<div id="highScore">High Score</div>
+<canvas width="1488" height="640" id="game"></canvas><br>
+<Button id="restartBtn">Restart</Button>
+<Button id="pauseBtn">Pause</Button>
+<Button id="resumeBtn">Resume</Button>
+<script>
+var restartBtn = document.getElementById("restartBtn");
+var pauseBtn = document.getElementById("pauseBtn");
+var canvas = document.getElementById('game');
+var context = canvas.getContext('2d');
+var grid = 16;
+var count = 0;
+var lastMove="";
+var positionX;
+var positionY;
+var isPaused=false;
+var gamePaused;
+
+
+window.addEventListener('load' , e  => {
+
+  getSnakeCoordinates();
+  getAppleCoordinates();
+  getScore();
+  getCurrScore();
+
+});
+
+ 
+
+
+pauseBtn.addEventListener("click",function(event)
+{
+setSnakeCoordinates();
+setAppleCoordinates();
+setScore();
+isPaused=true;
+});
+
+resumeBtn.addEventListener("click",function(event)
+{
+getSnakeCoordinates();
+isPaused=false;
+});
+
+
+function setSnakeCoordinates()
+{
+  localStorage.snake = JSON.stringify(snake);
+}
+
+function setAppleCoordinates()
+{
+  localStorage.apple = JSON.stringify(apple);
+}
+
+function setScore()
+{
+  localStorage.score = JSON.stringify(score);
+}
+
+function getSnakeCoordinates()
+{
+if(!localStorage.snake)
+{
+snake = 
+{
+  x : 160,
+  y : 160 ,
+ cells : [{x:160 , y:160} , {x:144 , y:160}]
+}
+}
+else
+{
+snake = JSON.parse(localStorage.getItem('snake'));
+}
+}
+
+
+function getCurrScore()
+{
+if(!localStorage.currScore)
+{
+  score1=0;
+}
+else
+{
+score1 = JSON.parse(localStorage.getItem('currScore'));
+}
+}
+
+
+function getAppleCoordinates()
+{
+if(!localStorage.apple)
+{
+  apple = {
+  x: 320,
+  y: 320
+}
+}
+else
+{
+apple = JSON.parse(localStorage.getItem('apple'));
+}
+}
+
+
+function getScore()
+{
+if(!localStorage.score)
+{
+  score=0;
+}
+else
+{
+score = JSON.parse(localStorage.getItem('score'));
+}
+}
+
+
+
+
+var score1=document.getElementById("score");
+var highScore=document.getElementById("highScore");
+
+restartBtn.addEventListener("click",function()
+{
+  
+  localStorage.removeItem('snake');
+      localStorage.removeItem('apple');
+  location.reload();
+});
+
+
+var snake = 
+{
+  x : 160,
+  y : 160 ,
+ cells : [{x:160 , y:160} , {x:144 , y:160}] ,
+ die : false , // to close the game
+ eatApple : false , // set when eat apple , to increase the size
+};
+
+var apple = {
+  x: 320,
+  y: 320
+};
+
+// draw apple
+function drawApple()
+{
+  context.fillStyle = 'red';
+  context.fillRect(apple.x, apple.y, grid-1, grid-1); 
+
+}
+drawApple();
+
+// draw snake
+function drawSnake()
+{
+  context.fillStyle = 'green';
+  for(let i=0 ; i<snake.cells.length ; i++)
+    context.fillRect(snake.cells[i].x, snake.cells[i].y, grid-1, grid-1);
+}
+drawSnake();  
+
+//Update Coordinates
+function moveSnake( dx , dy)
+{
+  snake.x += dx ;
+  snake.y += dy ;
+  localStorage.positionX = snake.x;
+  localStorage.positionY = snake.y;
+  snake.cells.unshift({x: snake.x , y: snake.y}) ; // Insert at 0th position
+  if(!snake.eatApple)snake.cells.pop();  // remove the last element
+  else snake.eatApple = false ; // don't remove last element to increase the size .
+}
+
+
+
+// To check snake touched the boundary
+function checkBoundary(){
+  if( snake.x < 0 || snake.x >= canvas.width || snake.y < 0 || snake.y >= canvas.height){
+    snake.die = true ;
+   // alert("Game Over");
+    localStorage.removeItem('snake');
+      localStorage.removeItem('apple');
+      localStorage.removeItem('currScore');
+    location.reload();
+  }
+}
+
+// get random whole numbers in a specific range
+function getRandomInt() {
+  return Math.floor(Math.random() * 40) * grid;
+}
+
+function getRandomInt1() {
+  return Math.floor(Math.random() * 93) * grid;
+}
+
+//Prevent to apple placed on snake
+function checkAppleIsOnSnake(){
+   for(let i = 0 ; i < snake.cells.length ; i++){
+    if( apple.x == snake.cells[i].x && apple.y == snake.cells[i].y){
+      return true ;
+    }
+  }
+}
+
+// Snake Bite to itself
+function checkSnakeBiteItself(){
+  for(let i = 4 ; i < snake.cells.length ; i++){
+    if( snake.x == snake.cells[i].x && snake.y == snake.cells[i].y){
+      snake.die = true ;
+      //alert("Game Over");
+      localStorage.removeItem('snake');
+      localStorage.removeItem('apple');
+      localStorage.removeItem('currScore');
+    location.reload();
+    }
+  }
+}
+
+// Generate Apple's new coordinate
+function generateApple(){
+  apple.x = getRandomInt();
+  apple.y = getRandomInt();
+  if( checkAppleIsOnSnake() ){
+    generateApple() ;
+  }  
+}
+
+
+// snake's head on apple
+function checkEatApple(){
+  if(snake.x == apple.x && snake.y == apple.y){
+  localStorage.currScore = count++;
+  score1.innerHTML = "Score: "+localStorage.currScore;
+  highScore.innerHTML = "High Score: "+localStorage.score;
+  if(count>localStorage.score)
+  {
+  localStorage.score = count;
+  highScore.innerHTML = "High Score: "+localStorage.score;
+  }
+   
+  
+  
+    snake.eatApple = true ;
+    generateApple(); // generate new coordinates for Apple .
+    drawApple();
+    
+  }
+}
+
+function gameOver(){
+  context.clearRect(0, 0, canvas.width,canvas.height);// Clear the Canvas
+  snake.cells = [];
+  context.fillStyle = 'red'; 
+  context.font = "30px Arial";
+  context.textAlign = "center";
+  context.fillText("Game Over" , canvas.width/2, canvas.height/2);
+}
+// listen to keyboard events to move the snake
+document.addEventListener('keydown', function(e) 
+{
+  let dx = 0  , dy = 0  ;
+  // left arrow key
+  if (e.keyCode == 37 && lastMove != 'right') 
+  {
+    dx = -grid;
+    dy = 0;
+    lastMove = 'left' ;
+	
+  }
+   // up arrow key
+  else if (e.keyCode == 38 && lastMove != 'down' ) 
+  {
+    dy = -grid;
+    dx = 0;
+    lastMove = 'up' ;
+  }
+   // right arrow key
+  else if (e.keyCode == 39 && lastMove != 'left' ) 
+  {
+    dx = grid;
+    dy = 0;
+    lastMove = 'right' ;
+  }
+   // down arrow key
+  else if (e.keyCode == 40 && lastMove != 'up') 
+  {
+    dy = grid;
+    dx = 0;
+    lastMove = 'down' ;
+  }
+  else{
+      return ;
+  }
+  /*context.clearRect(0, 0, canvas.width,canvas.height);// Clear the Canvas
+  moveSnake(dx,dy);
+  checkBoundary(); //check boundary
+  checkSnakeBiteItself(); 
+  checkEatApple(); // to increase the size
+  if(snake.die){
+    gameOver();
+    return ;
+  }
+  drawSnake();
+  drawApple();*/
+  checkEatApple();
+});
+
+function drawGame()
+{
+if(isPaused==false)
+{
+context.clearRect(0, 0, canvas.width,canvas.height);
+drawSnake();
+drawApple();
+let dx = 0  , dy = 0  ;
+if(lastMove.localeCompare("left")==0)
+{
+dx = -grid;
+dy=0;
+}
+if(lastMove.localeCompare("right")==0)
+{
+dx = grid;
+dy=0;
+}
+if(lastMove.localeCompare("down")==0)
+{
+dy = grid;
+dx=0;
+}
+if(lastMove.localeCompare("up")==0)
+{
+dy = -grid;
+dx=0;
+}
+moveSnake(dx,dy);
+checkBoundary(); //check boundary
+checkSnakeBiteItself(); 
+checkEatApple();
+if(snake.die){
+    gameOver();
+    return ;
+  }
+  drawSnake();
+  drawApple();
+  }
+}
+
+setInterval(drawGame,75);
+
+</script>
+</body>
+</html>
